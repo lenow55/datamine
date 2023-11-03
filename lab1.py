@@ -1,36 +1,86 @@
-import math
 import random
+import numpy as np
 
 def f(x:float, y:float) -> float:
-    res = 5*math.sin(((x/2)*math.cosh(0.1*x))/(math.cos(y)+2))
+    """
+    Функция энергии, целевая функция для минимизации
+    """
+    res: float = 5 * np.sin(((x/2) * np.cosh(0.1*x)) / (np.cos(y) + 2))
     return res
 
 def temp():
-    t = 100
+    """
+    Функция генерации значений температуры
+    """
+    t: float = 100
     while t >= 0.5:
         yield t
         t = t/2
 
-for t in temp():
-    print(t)
+def temp_new():
+    """
+    Функция генерации значений температуры
+    модифицированная
+    """
+    t: float = 100
+    while t >= 0.01:
+        yield t
+        t = t/1.2
 
+def translate(probability: float) -> bool:
+    """
+    Функция перехода: генерирует случайное значение от 0 до 1
+    выполняет переход если сгенерированное значение
+    меньше ли равно вероятности перехода
+    probability - вероятность перехода
+    """
+    probe_value = random.uniform(0,1)
+    if probe_value <= probability:
+        return True
+    return False
+
+x_y_range: float = 5
 # Генерация случайного числа с плавающей запятой в диапазоне от -5 до 5
-random_float = random.uniform(-5, 5)
-print(random_float)
+# начальное значение
+x_current: float = random.uniform(-x_y_range, x_y_range)
+y_current: float = random.uniform(-x_y_range, x_y_range)
 
-import matplotlib.pyplot as plt
+# задаю начальное значение для энергии
+energy_state: float = f(x_current, y_current)
 
-# Ваши значения
-values = [100, 50.0, 25.0, 12.5, 6.25, 3.125, 1.5625, 0.78125]
+# промежуток, в котором будут генерироваться новые значения
+new_range: float = 2.0
 
-# Создаем список значений на оси x от 0 до 150
-x_values = [i * 150 / 8 for i in range(9)]
+print(f"Начальная энергия {energy_state:.6f}")
+print(f"X: {x_current:.6f}; Y: {y_current:.6f}")
 
-# Строим график
-plt.plot(x_values, values, marker='o', linestyle='-', color='b')
-plt.xlabel('Ось X')
-plt.ylabel('Значения')
-plt.title('График значений')
+for current_temp in temp_new():
+    # случайное изменение текущего решения
+    new_x_current: float = x_current + random.uniform(-new_range, new_range)
+    new_y_current: float = y_current + random.uniform(-new_range, new_range)
 
-# Отображаем график
-plt.show()
+    # ограничение новых значений нашим промежутком поиска
+    new_x_current = np.clip(new_x_current, -x_y_range, x_y_range)
+    new_y_current = np.clip(new_y_current, -x_y_range, x_y_range)
+
+    # вычисляю значение энергии в новой точке
+    new_energy_state: float = f(new_x_current, new_y_current)
+
+    # рассчитываю вероятность перехода в новое состояние
+    # exp^(-(new_energy - energy)/Ti)
+    probability: float = np.clip(np.exp(-(new_energy_state-energy_state)/current_temp), 0, 1)
+
+    print(f"Температура: {current_temp:3.3f};\t\
+текущая энергия {energy_state:3.7f};\t\
+новая энергия {new_energy_state:3.7f};\t\
+вероятность перехода: {probability:3.2f}")
+
+    # выполняю переход, если случайное значение попадает
+    # в промежуток вероятности перехода
+    if translate(probability):
+        x_current = new_x_current
+        y_current = new_y_current
+        energy_state = new_energy_state
+
+print(f"Вычисленное значение: {energy_state:.6f}")
+print(f"X: {x_current:.6f}; Y: {y_current:.6f}")
